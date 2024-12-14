@@ -33,10 +33,10 @@ df_agg_diff = df_agg_diff.drop(df_agg_diff.columns[[0, 1]], axis=1)
 metric_date_12mo = df_agg_diff['Video publish time'].max() - pd.DateOffset(months =12)
 median_agg = df_agg_diff[df_agg_diff['Video publish time'] >= metric_date_12mo].median()
 
-numeric_cols = np.array((df_agg_diff.dtypes == 'float64') | (df_agg_diff.dtypes == 'int64'))
+numeric_cols = df_agg_diff.select_dtypes(include=['float64', 'int64']).columns
 df_agg_diff[numeric_cols] = df_agg_diff[numeric_cols].apply(pd.to_numeric, errors='coerce')
 
-df_agg_diff.iloc[:,numeric_cols] = (df_agg_diff.iloc[:,numeric_cols] - median_agg).div(median_agg)
+df_agg_diff[numeric_cols] = (df_agg_diff[numeric_cols] - median_agg[numeric_cols]) / median_agg[numeric_cols]
 
 
 #build dashboard
@@ -47,14 +47,31 @@ if add_sidebar == 'Aggregate Metrics':
     st.write('Aggregate Metrics')
     df_agg_metrics = df_agg[['Video publish time','Views','Likes','Subscribers','Shares','Comments added','RPM(USD)','Average % viewed',
                              'Avg_duration_sec', 'Engagement_ratio','Views / sub gained']]
+    
+    numeric_metrics = ['Views', 'Likes', 'Subscribers', 'Shares', 'Comments added', 
+                   'RPM(USD)', 'Average % viewed', 'Avg_duration_sec', 
+                   'Engagement_ratio', 'Views / sub gained']
+    df_agg_metrics_numeric = df_agg_metrics[numeric_metrics]
+                             
     metric_date_6mo = df_agg_metrics['Video publish time'].max() - pd.DateOffset(months =6)
     metric_date_12mo = df_agg_metrics['Video publish time'].max() - pd.DateOffset(months =12)
-    metric_medians6mo = df_agg_metrics[df_agg_metrics['Video publish time'] >= metric_date_6mo].median()
-    metric_medians12mo = df_agg_metrics[df_agg_metrics['Video publish time'] >= metric_date_12mo].median()
+    metric_medians6mo = df_agg_metrics_numeric[df_agg_metrics['Video publish time'] >= metric_date_6mo].median()
+    metric_medians12mo = df_agg_metrics_numeric[df_agg_metrics['Video publish time'] >= metric_date_12mo].median()
 
+    col1, col2, col3, col4, col5 = st.columns(5)
+    columns = [col1, col2, col3, col4, col5]
+    
+    count = 0
+    for i in metric_medians6mo.index:
+        with columns[count]:
+            delta = (metric_medians6mo[i] - metric_medians12mo[i]) / metric_medians12mo[i]
+            st.metric(label=i, value=round(metric_medians6mo[i], 1), delta="{:.2%}".format(delta))
+            count += 1
+            if count >= 5:
+                count = 0
 
 if add_sidebar == 'Individual Video Analysis':
     st.write('Individual Video Analysis')
 
 
-#Time stopped - 33.51
+#Time stopped - 39

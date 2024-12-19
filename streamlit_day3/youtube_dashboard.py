@@ -6,6 +6,20 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
 
+def style_negative(v, props=''):
+    """ Style negative values in dataframe"""
+    try: 
+        return props if v < 0 else None
+    except:
+        pass
+    
+def style_positive(v, props=''):
+    """Style positive values in dataframe"""
+    try: 
+        return props if v > 0 else None
+    except:
+        pass
+
 #load data
 @st.cache_data
 def load_data():
@@ -29,6 +43,7 @@ df_agg, df_agg_sub, df_comments, df_time =load_data()
 
 #engineer data
 df_agg_diff = df_agg.copy()
+video_titles = df_agg_diff['Video title']
 df_agg_diff = df_agg_diff.drop(df_agg_diff.columns[[0, 1]], axis=1)
 metric_date_12mo = df_agg_diff['Video publish time'].max() - pd.DateOffset(months =12)
 median_agg = df_agg_diff[df_agg_diff['Video publish time'] >= metric_date_12mo].median()
@@ -69,6 +84,17 @@ if add_sidebar == 'Aggregate Metrics':
             count += 1
             if count >= 5:
                 count = 0
+    
+    df_agg_diff['Publish_date'] = df_agg_diff['Video publish time'].apply(lambda x: x.date())
+    df_agg_diff_final = df_agg_diff.loc[:,['Publish_date','Views','Likes','Subscribers','Shares','Comments added','RPM(USD)','Average % viewed',
+                             'Avg_duration_sec', 'Engagement_ratio','Views / sub gained']]
+    df_agg_diff_final.insert(0, 'Video title', video_titles)
+    
+    df_agg_numeric_lst = df_agg_diff_final.select_dtypes(include=['float64', 'int64']).median().index.tolist()
+    df_to_pct = {col: '{:.1%}'.format for col in df_agg_numeric_lst}
+    
+    
+    st.dataframe(df_agg_diff_final.style.hide().map(style_negative, props='color:red;').map(style_positive, props='color:green;').format(df_to_pct))
 
 if add_sidebar == 'Individual Video Analysis':
     st.write('Individual Video Analysis')

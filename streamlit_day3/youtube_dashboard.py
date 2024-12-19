@@ -20,6 +20,15 @@ def style_positive(v, props=''):
     except:
         pass
 
+def audience_simple(country):
+    """Show top represented countries"""
+    if country == 'US':
+        return 'USA'
+    elif country == 'IN':
+        return 'India'
+    else:
+        return 'Other'
+
 #load data
 @st.cache_data
 def load_data():
@@ -89,15 +98,32 @@ if add_sidebar == 'Aggregate Metrics':
     df_agg_diff_final = df_agg_diff.loc[:,['Publish_date','Views','Likes','Subscribers','Shares','Comments added','RPM(USD)','Average % viewed',
                              'Avg_duration_sec', 'Engagement_ratio','Views / sub gained']]
     df_agg_diff_final.insert(0, 'Video title', video_titles)
-    
+
+    numeric_columns = [
+        'Views', 'Likes', 'Subscribers', 'Shares', 'Comments added',
+        'RPM(USD)', 'Average % viewed', 'Avg_duration_sec',
+        'Engagement_ratio', 'Views / sub gained'
+    ]
+
+    for col in numeric_columns:
+        df_agg_diff_final[col] = pd.to_numeric(df_agg_diff_final[col], errors='coerce')
+
     df_agg_numeric_lst = df_agg_diff_final.select_dtypes(include=['float64', 'int64']).median().index.tolist()
     df_to_pct = {col: '{:.1%}'.format for col in df_agg_numeric_lst}
-    
     
     st.dataframe(df_agg_diff_final.style.hide().map(style_negative, props='color:red;').map(style_positive, props='color:green;').format(df_to_pct))
 
 if add_sidebar == 'Individual Video Analysis':
-    st.write('Individual Video Analysis')
+    st.write("Individual Video Performance")
+    video_select=st.selectbox('Pick a Video: ', df_agg['Video title'])
+    agg_filtered = df_agg[df_agg['Video title'] == video_select]
+    agg_sub_filtered = df_agg_sub[df_agg_sub['Video Title'] == video_select]
+    agg_sub_filtered['Country'] = agg_sub_filtered['Country Code'].apply(audience_simple)
+    agg_sub_filtered.sort_values('Is Subscribed', inplace= True)
+
+    fig = px.bar(agg_sub_filtered, x='Views', y='Is Subscribed', color='Country', orientation='h')
+    st.plotly_chart(fig)
 
 
-#Time stopped - 39
+
+#Time stopped - 56.45

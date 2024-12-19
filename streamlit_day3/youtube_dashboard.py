@@ -160,6 +160,3 @@ if add_sidebar == 'Individual Video Analysis':
                    yaxis_title='Cumulative views')
     
     st.plotly_chart(fig2)
-
-
-#Time stopped - 56.45
